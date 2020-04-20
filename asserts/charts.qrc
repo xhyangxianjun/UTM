@@ -1,0 +1,8 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+    <qresource>
+        <file alias="js/echarts.js">echarts.min.js</file>
+        <file alias="js/main.js">main.js</file>
+        <file alias="html/render.html">render.html</file>
+    </qresource>
+</RCC>
