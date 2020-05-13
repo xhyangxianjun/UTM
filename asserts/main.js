@@ -50,17 +50,14 @@ var option_b7e5870db3d84d4db9639909239acfd9 = {
             "itemHeight": 14
         }
     ],
-    "tooltip": {
-        "show": true,
-        "trigger": "item",
-        "triggerOn": "mousemove|click",
-        "axisPointer": {
-            "type": "line"
-        },
-        "textStyle": {
-            "fontSize": 14
-        },
-        "borderWidth": 0
+    tooltip: {
+        trigger: 'axis',
+        axisPointer: {
+            type: 'cross',
+            label: {
+                backgroundColor: '#6a7985'
+            }
+        }
     },
     "dataZoom": [{
         type: 'slider',

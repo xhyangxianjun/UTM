@@ -1,0 +1,4 @@
+serial:
+  baud: 9600
+  deviceType: UTM
+  port: COM23
