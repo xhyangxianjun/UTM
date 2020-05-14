@@ -8,19 +8,6 @@ import sys
 header = b"\xF5\xFA"
 header_pad = 3
 
-# 导入协议模块
-M = []
-
-from .device import UTM
-from .device import VB_Mind_H2
-
-M.append(UTM.USB_Temp_Monitor)
-M.append(VB_Mind_H2.VB_Mind_H2)
-
-print("load Protocol {}".format(len(M)))
-for k,v in enumerate(M):
-    print("\t{0}. {1} {2} {3}".format(k,v.Name, v.Device, v.Description))
-
 """
 基本协议
 Header u16 固定 0xF5,FA
@@ -29,11 +16,13 @@ Length u8 下面的字节数
 CheckSum u8 校验字
 """
 
+
 def hexString(a):
     s = ""
     for i in a:
         s += "{0:02X} ".format(i)
     return s
+
 
 def checkSum(data):
     a = 0
@@ -78,6 +67,25 @@ def readPackage(r):
 
     return None, packBody[:-1]
 
+
+class BaseProtocol:
+    def __init__(self, serial):
+        self.s = serial
+
+    def sendPackage(self, body):
+        s = b"\xF5\xFA"
+        s += struct.pack(">B", len(body)+4)
+        s += body
+        s += struct.pack(">B", checkSum(s))
+
+        try:
+            if self.s.is_open:
+                self.s.write(s)
+                self.s.flush()
+        except serial.serialutil.SerialException as e:
+            raise e
+
+
 if __name__ == '__main__':
     b = b""
     b += b"\xF5\xFA\x07\x00\x01\x03\xFA"
@@ -94,7 +102,7 @@ if __name__ == '__main__':
     # print("Raw {}".format(hexString(b)))
     # print("CheckSum {0:02X}".format(checkSum(b)))
 
-    sss =serial.Serial(port="com9", baudrate=9600)
+    sss = serial.Serial(port="com9", baudrate=9600)
     # print(sss.name)
     # print(sss.port)
     # sss.open()
@@ -112,11 +120,15 @@ if __name__ == '__main__':
         # print("packBody: {0}".format((body)))
 
         s = ""
-        s += "{:02X}-{}".format(body[0],struct.unpack(r">H", body[1:3])[0]/100,)
+        s += "{:02X}-{}".format(body[0],
+                                struct.unpack(r">H", body[1:3])[0]/100,)
         s += " "
-        s += "{:02X}-{}".format(body[3],struct.unpack(r">H", body[4:6])[0]/100,)
+        s += "{:02X}-{}".format(body[3],
+                                struct.unpack(r">H", body[4:6])[0]/100,)
         s += " "
-        s += "{:02X}-{}".format(body[6],struct.unpack(r">H", body[7:9])[0]/100,)
+        s += "{:02X}-{}".format(body[6],
+                                struct.unpack(r">H", body[7:9])[0]/100,)
         s += " "
-        s += "{:02X}-{}".format(body[9],struct.unpack(r">H", body[10:12])[0]/100,)
+        s += "{:02X}-{}".format(body[9],
+                                struct.unpack(r">H", body[10:12])[0]/100,)
         print(s)

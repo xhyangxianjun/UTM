@@ -41,11 +41,14 @@ import json
 import config
 
 
+def round(a):
+    if a % 1 > 0.4:
+        return int(a)+1
+    else:
+        return int(a)
+
+
 class MyMainWindow(QMainWindow):
-    data = []
-    onceU = 0
-    startTime = None
-    A_time = None
 
     def __init__(self, parent=None):
         super().__init__()
@@ -54,45 +57,64 @@ class MyMainWindow(QMainWindow):
 
         self.setWindowTitle("USB temperature monitor")
 
+        self.cp = None
+
         self.web = WebChart(self)
 
         self.main_widget = self.web
         self.setCentralWidget(self.main_widget)
         self.resize(900, 600)
 
-    @staticmethod
-    def uData(d):
+        self.data = []
+        self.onceU = 0
+        self.startTime = None
+        self.A_time = None
+        self.nn = 0
+
+        self.sss = None
+
+        self.att = None
+
+    def uData(self, d):
 
         n = datetime.datetime.now()
         dur = None
 
-        if MyMainWindow.onceU == 0:
-            MyMainWindow.onceU += 1
+        if self.onceU == 0:
+            self.onceU += 1
 
-            MyMainWindow.startTime = n
-            dur = n-n
+            self.startTime = n
+            dur = datetime.timedelta(seconds=0)
 
-            MyMainWindow.A_time = n
+            self.A_time = n
         else:
-            dur = n-MyMainWindow.startTime
+            dur = n-self.startTime
 
-            # print("nnn: {0}".format((n-MyMainWindow.A_time).total_seconds()))
+            # print("nnn: {0}".format((n-self.A_time).total_seconds()))
 
-            MyMainWindow.A_time = n
+            self.A_time = n
 
-        # if MyMainWindow.onceU == 1:
-        #     MyMainWindow.data = []
-        #     MyMainWindow.onceU += 1
+        # if self.onceU == 1:
+        #     self.data = []
+        #     self.onceU += 1
 
-        dur = datetime.timedelta(seconds=int(dur.total_seconds()*10)/10)
+        dur = datetime.timedelta(
+            milliseconds=round(dur.total_seconds()*10)*100)
 
-        print("AAA: {0}".format(dur.total_seconds()))
+        # if dur.total_seconds() != self.nn * 0.5:
+        #     print("AAA: {0:.3f} {1}".format(
+        #         dur.total_seconds(), self.nn))
+        #     self.on_pause()
+        # else:
+        #     print("AAA: {0:.3f}".format(dur.total_seconds()))
 
-        MyMainWindow.data.append({
+        self.nn += 1
+
+        self.data.append({
             "timestamp": "{0}".format(str(dur)),
             "data": d,
         })
-        qb.web.set_data(MyMainWindow.data)
+        qb.web.set_data(self.data)
 
     def initUI(self):
         menubar = self.menuBar()
@@ -149,13 +171,13 @@ class MyMainWindow(QMainWindow):
 
     def on_start(self):
         try:
-            self.sss = openSerial()
+            self.sss = self.openSerial()
             self.serialAction.setDisabled(True)
             self.startAction.setDisabled(True)
             self.pauseAction.setDisabled(False)
             self.statusBar().showMessage("启动采样")
-            MyMainWindow.data = []
-            self.web.set_data(MyMainWindow.data)
+            self.data = []
+            self.web.set_data(self.data)
         except serial.serialutil.SerialException as e:
             # subW = serialSetting.SerialSettingWindow(self)
             # returnValue = subW.exec()
@@ -164,14 +186,15 @@ class MyMainWindow(QMainWindow):
 
     def on_pause(self):
         if not type(self.sss) is type(None):
-            # print(self.sss)
             self.sss.close()
             self.serialAction.setDisabled(False)
             self.startAction.setDisabled(False)
             self.pauseAction.setDisabled(True)
-            MyMainWindow.onceU = 0
+            self.onceU = 0
         # closeSerial()
         self.statusBar().showMessage("暂停采样")
+
+        self.cp.onClose()
 
     def on_save(self):
         fpath, flit = QFileDialog.getSaveFileName(parent=self, caption="保存数据，格式：{0}".format(
@@ -182,26 +205,87 @@ class MyMainWindow(QMainWindow):
         if flit == "csv文件(*.csv)":
             with open(fpath, 'w+') as f:
                 f.write("time,CH1,CH2,CH3,CH4\n")
-                for a in MyMainWindow.data:
+                for a in self.data:
                     f.write("{0},".format(a["timestamp"]))
                     for l in a["data"]:
                         f.write("{0},".format(l))
                     f.write("\n")
         elif flit == "json文件(*.json)":
             with open(fpath, 'w+') as f:
-                f.write(json.dumps(MyMainWindow.data))
+                f.write(json.dumps(self.data))
         self.statusBar().showMessage("存储采样数据，格式: {}".format(format))
 
         msgBox = QMessageBox()
         msgBox.setIcon(QMessageBox.Information)
         s = ""
         s += "文件路径：{0}\n".format(fpath)
-        s += "数据量：{0}".format(len(MyMainWindow.data))
+        s += "数据量：{0}".format(len(self.data))
         msgBox.setText(s)
         msgBox.setWindowTitle("保存成功")
         msgBox.setStandardButtons(QMessageBox.Ok)
         returnValue = msgBox.exec()
         return None
+
+    def openSerial(self):
+
+        while(config.CFG.data is None):
+            try:
+                config.loadConfig()
+            except FileNotFoundError as e:
+                msgBox = QMessageBox()
+                msgBox.setIcon(QMessageBox.Critical)
+                s = "{0}\r\n".format(e)
+                s += "点击确定开始配置"
+                msgBox.setText(s)
+                msgBox.setWindowTitle("找不到配置文件")
+                msgBox.setStandardButtons(QMessageBox.Ok)
+                returnValue = msgBox.exec()
+                subW = serialSetting.SerialSettingWindow()
+                subW.exec()
+
+        try:
+            sss = serial.Serial(
+                port=config.CFG.data["serial"]["port"],
+                baudrate=config.CFG.data["serial"]["baud"],
+            )
+
+            serialPackage = None
+
+            self.cp = config.CFG.currentProtocol()(sss)
+            self.cp.onOpen()
+
+            def a(body):
+                dd = self.cp.parsePkg(body)
+                self.uData(dd)
+
+            serialPackage = a
+
+            self.aat = protocol.SerialThread(sss, serialPackage)
+            self.aat.setDaemon(True)
+            self.aat.start()
+
+            # def s_fn():
+            #     return b"\x01"
+
+            # aat = protocol.SerialThreadSend(sss, fn=s_fn)
+            # aat.setDaemon(True)
+            # aat.start()
+            return sss
+
+        except serial.serialutil.SerialException as e:
+            msgBox = QMessageBox()
+            msgBox.setIcon(QMessageBox.Critical)
+            msgBox.setText(
+                "串口参数：{0}\r\n错误：{1}".format(
+                    "port: {0} baud:{1}".format(
+                        config.CFG.data["serial"]["port"],
+                        config.CFG.data["serial"]["baud"],
+                    ),
+                    e))
+            msgBox.setWindowTitle("打开串口发生错误")
+            msgBox.setStandardButtons(QMessageBox.Ok)
+            returnValue = msgBox.exec()
+            raise e
 
 
 class WebChart(QWidget):
@@ -220,6 +304,9 @@ class WebChart(QWidget):
         # self.initData()
         # self.web.setHtml(htmlF.read())
         self.web.load(QUrl("qrc:///html/render.html"))
+
+        vbox.setSpacing(0)
+        vbox.setContentsMargins(0, 0, 0, 0)
         vbox.addWidget(self.web)
 
         # button = QPushButton('PyQt5 button', self)
@@ -297,66 +384,6 @@ class WebChart(QWidget):
     #     )
 
     #     bar.render()
-
-
-def openSerial():
-
-    while(config.CFG.data is None):
-        try:
-            config.loadConfig()
-        except FileNotFoundError as e:
-            msgBox = QMessageBox()
-            msgBox.setIcon(QMessageBox.Critical)
-            s = "{0}\r\n".format(e)
-            s += "点击确定开始配置"
-            msgBox.setText(s)
-            msgBox.setWindowTitle("找不到配置文件")
-            msgBox.setStandardButtons(QMessageBox.Ok)
-            returnValue = msgBox.exec()
-            subW = serialSetting.SerialSettingWindow()
-            subW.exec()
-
-    try:
-        sss = serial.Serial(
-            port=config.CFG.data["serial"]["port"], baudrate=config.CFG.data["serial"]["baud"])
-
-        serialPackage = None
-
-        for i in protocol.M:
-            if i.Device == config.CFG.data["serial"]["deviceType"]:
-                def a(body):
-                    dd = i.parsePkg(body)
-
-                    MyMainWindow.uData(dd)
-                serialPackage = a
-                break
-
-        aat = protocol.SerialThread(sss, serialPackage)
-        aat.setDaemon(True)
-        aat.start()
-
-        def s_fn():
-            return b"\x01"
-
-        aat = protocol.SerialThreadSend(sss, fn=s_fn)
-        aat.setDaemon(True)
-        aat.start()
-
-    except serial.serialutil.SerialException as e:
-        msgBox = QMessageBox()
-        msgBox.setIcon(QMessageBox.Critical)
-        msgBox.setText(
-            "串口参数：{0}\r\n错误：{1}".format(
-                "port: {0} baud:{1}".format(
-                    config.CFG.data["serial"]["port"],
-                    config.CFG.data["serial"]["baud"],
-                ),
-                e))
-        msgBox.setWindowTitle("打开串口发生错误")
-        msgBox.setStandardButtons(QMessageBox.Ok)
-        returnValue = msgBox.exec()
-        raise e
-    return sss
 
 
 if __name__ == '__main__':

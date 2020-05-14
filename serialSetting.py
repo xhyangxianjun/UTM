@@ -32,7 +32,6 @@ class SerialSettingWindow(QDialog):
         super(SerialSettingWindow, self).__init__(parent)
         # super().__init__()
 
-        
         try:
             config.loadConfig()
         except FileNotFoundError as e:
@@ -125,7 +124,7 @@ class SerialSettingWindow(QDialog):
         try:
             baudCombobox.setEditText("{}".format(
                 config.CFG.data["serial"]["baud"]))
-            for k,v in enumerate(baudList):
+            for k, v in enumerate(baudList):
                 if int(v) == config.CFG.data["serial"]["baud"]:
                     baudCombobox.setCurrentIndex(k)
         except KeyError as e:
@@ -160,9 +159,9 @@ class SerialSettingWindow(QDialog):
             deviceTypeCombobox.setEditText(
                 "{}".format(cfgDeviceType))
             for i, a in enumerate(protocol.M):
-                    if a.Device == cfgDeviceType:
-                        deviceTypeCombobox.setCurrentIndex(i)
-                        break
+                if a.Device == cfgDeviceType:
+                    deviceTypeCombobox.setCurrentIndex(i)
+                    break
         except KeyError as e:
             pass
 

@@ -2,11 +2,12 @@
 
 import yaml
 import io
+import protocol
 
 # cfg = configparser.ConfigParser()
 
 default_config = {
-    "serial":{
+    "serial": {
         "baud": 9600,
         "deviceType": "UTM",
         "port": "COM1",
@@ -18,6 +19,13 @@ class CFG:
     data = None
     cfgPath = "config.yml"
     encoding = "utf8"
+
+    @staticmethod
+    def currentProtocol():
+        for i in protocol.M:
+            if i.Device == CFG.data["serial"]["deviceType"]:
+                return i
+
 
 def loadConfig():
     with open(CFG.cfgPath, 'r', encoding=CFG.encoding) as stream:

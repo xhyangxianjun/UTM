@@ -1,7 +1,11 @@
 import struct
 
+import timer
 
-class USB_Temp_Monitor:
+from protocol import BaseProtocol
+
+
+class USB_Temp_Monitor(BaseProtocol):
     Device = "UTM"
     Name = "USB温度监控仪"
     Description = ""
@@ -19,8 +23,11 @@ class USB_Temp_Monitor:
         "Scale": 1,
     }]
 
-    @staticmethod
-    def parsePkg(body):
+    def __init__(self, serial):
+        super().__init__(serial)
+        self.tt = timer.Timer(delay=0.5, acc=0.001, fn=self.onClock)
+
+    def parsePkg(self, body):
 
         # print("Fuuuuck {0}", body)
 
@@ -42,6 +49,15 @@ class USB_Temp_Monitor:
                 h4/100,
             ]
 
+    def onOpen(self, opts=None):
+        self.tt.Run()
+
+    def onClose(self):
+        self.tt.Stop()
+        pass
+
+    def onClock(self):
+        self.sendPackage(b"\x01")
 
 
 if __name__ == '__main__':

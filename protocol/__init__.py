@@ -1,10 +1,28 @@
+from .device import VB_Mind_H2
+from .device import UTM
 import threading
-from . import main
-from .main import M
 import serial
 import datetime
 import time
 import struct
+
+# import protocol.main
+from .main import checkSum
+from .main import readPackage
+from .main import BaseProtocol
+
+
+def HexDump(a):
+    s = "     0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F\r\n"
+    for k, v in enumerate(a):
+        if k % 0x10 == 0x0:
+            s += "{0:02X}: ".format(k)
+
+        s += "{0:02X} ".format(v)
+
+        if k % 0x10 == 0xF:
+            s += "\r\n"
+    return s
 
 
 class SerialThread (threading.Thread):
@@ -15,7 +33,9 @@ class SerialThread (threading.Thread):
 
     def run(self):
         while(1):
-            msg, body = main.readPackage(self.r)
+            if (not self.r.is_open) and (self.in_waiting > 4):
+                time.delay(0.1)
+            msg, body = readPackage(self.r)
             if msg != None:
                 if msg == "EOF":
                     break
@@ -55,24 +75,19 @@ class SerialThreadSend(threading.Thread):
                     self.sendPackage(self.fn())
 
                     print("mmm: {0}".format((n - self.A_time).total_seconds()))
-                    time.sleep(self.delay*(self.delay/ (n - self.A_time).total_seconds()))
-                    self.A_time=n
+                    time.sleep(self.delay*(self.delay /
+                                           (n - self.A_time).total_seconds()))
+                    self.A_time = n
             # time.sleep(self.delay*0.01)
 
-    def sendPackage(self, body):
-        s = b"\xF5\xFA"
-        s += struct.pack(">B", len(body)+4)
-        s += body
-        s += struct.pack(">B", main.checkSum(s))
 
-        self.w.write(s)
-        self.w.flush()
+# 导入协议模块
+M = []
 
 
-if __name__ == '__main__':
-    aat = SerialThreadSend()
-    aat.setDaemon(True)
-    aat.start()
+M.append(UTM.USB_Temp_Monitor)
+M.append(VB_Mind_H2.VB_Mind_H2)
 
-    while(1):
-        pass
+print("load Protocol {}".format(len(M)))
+for k, v in enumerate(M):
+    print("\t{0}. {1} {2} {3}".format(k, v.Name, v.Device, v.Description))
