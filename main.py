@@ -1,44 +1,31 @@
 # coding:utf-8
 
 import sys
-import random
 import datetime
-from PyQt5.QtCore import (
-    Qt,
-    QUrl,
-    pyqtSlot,
-    QCoreApplication,
-)
-from PyQt5.QtWidgets import (
-    QWidget,
-    QApplication,
-    QMessageBox,
-    QFileDialog,
-    QGridLayout,
-    QVBoxLayout,
-    QMainWindow,
-    QPushButton,
-    QAction,
-    qApp,
-)
-from PyQt5.QtWebEngineWidgets import (
-    # QWebEngineSettings,
-    QWebEngineView,
-    # QWebEnginePage,
-)
-# from PyQt5.QtGui import QIcon
-
-# from pyecharts.charts import Line
-# from pyecharts import options as opts
-
-import asserts
-import serialSetting
 import protocol
-import struct
 import serial
 import os
 import json
 import config
+import time
+import math
+import threading
+
+from PyQt5.QtCore import (
+    Qt,
+    QCoreApplication,
+)
+from PyQt5.QtWidgets import (
+    QApplication,
+    QMessageBox,
+    QFileDialog,
+    QMainWindow,
+    QAction,
+    qApp,
+)
+
+from window import SerialSettingWindow
+from window import WebChart
 
 
 def round(a):
@@ -61,8 +48,7 @@ class MyMainWindow(QMainWindow):
 
         self.web = WebChart(self)
 
-        self.main_widget = self.web
-        self.setCentralWidget(self.main_widget)
+        self.setCentralWidget(self.web)
         self.resize(900, 600)
 
         self.data = []
@@ -70,10 +56,26 @@ class MyMainWindow(QMainWindow):
         self.startTime = None
         self.A_time = None
         self.nn = 0
+        self.nnn = 0
 
         self.sss = None
 
         self.att = None
+
+        while(config.CFG.data is None):
+            try:
+                config.loadConfig()
+            except FileNotFoundError as e:
+                msgBox = QMessageBox()
+                msgBox.setIcon(QMessageBox.Critical)
+                s = "{0}\r\n".format(e)
+                s += "点击确定开始配置"
+                msgBox.setText(s)
+                msgBox.setWindowTitle("找不到配置文件")
+                msgBox.setStandardButtons(QMessageBox.Ok)
+                returnValue = msgBox.exec()
+                subW = SerialSettingWindow()
+                subW.exec()
 
     def uData(self, d):
 
@@ -110,11 +112,27 @@ class MyMainWindow(QMainWindow):
 
         self.nn += 1
 
-        self.data.append({
+
+        if dur.total_seconds() > datetime.timedelta(seconds=self.nnn * 60).total_seconds():
+            self.nnn += 1
+
+            # print("min {0}".format(dur.total_seconds()))
+
+        dd = {
             "timestamp": "{0}".format(str(dur)),
             "data": d,
+        }
+        self.data.append(dd)
+
+        ss = "{0}".format(dur)
+
+        # print("ss: [{0},{1}],".format(ss,d))
+        # qb.web.set_data(self.data)
+
+        qb.web.push_data({
+            "timestamp": ss,
+            "data": d,
         })
-        qb.web.set_data(self.data)
 
     def initUI(self):
         menubar = self.menuBar()
@@ -129,9 +147,15 @@ class MyMainWindow(QMainWindow):
         saveAction.triggered.connect(self.on_save)
         fileMenu.addAction(saveAction)
 
+
         loadAction = QAction(self)
         loadAction.setText("加载数据")
         fileMenu.addAction(loadAction)
+
+        saveAction = QAction(self)
+        saveAction.setText("测试")
+        saveAction.triggered.connect(self.random_data)
+        fileMenu.addAction(saveAction)
 
         exitAction = QAction(self)
         exitAction.setText("退出")
@@ -160,13 +184,51 @@ class MyMainWindow(QMainWindow):
             aMenu.addMenu("名称：{}".format(a.Name))
             aMenu.addMenu("设备号：{}".format(a.Device))
             aMenu.addMenu("简介：{}".format(a.Description))
+            channels = aMenu.addMenu("通道数目：{}".format(len(a.xAxis)))
+
+            for ii in a.xAxis:
+                nn = channels.addMenu(ii["Name"])
+
+                for k in ii.keys():
+                    nn.addMenu("{0}: {1}".format(k, ii[k]))
 
         aboutAction = QAction(self)
         aboutAction.setText("关于这个软件")
         helpMenu.addAction(aboutAction)
 
+    def random_data(self):
+
+        self.data = []
+        self.web.set_channels(config.CFG.currentProtocol().xAxis)
+        cnt = 1000
+
+        def ffff():
+            for i in range(cnt):
+
+                z1 = datetime.datetime(year=2000,month=1,day=1)
+
+                ss = (z1+datetime.timedelta(seconds=i)).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3]
+
+                dd = {
+                    "timestamp": ss,
+                    "data": [
+                        math.sin(i/100),
+                        math.cos(i/100),
+                        math.sin(i/100) * 0.5,
+                        math.cos(i/100) * 0.5,
+                    ]
+                }
+                self.web.push_data(dd)
+
+                self.statusBar().showMessage("测试数据: {0:05d}".format(i))
+                time.sleep(0.1)
+
+        ttt = threading.Thread(target=ffff)
+        ttt.setDaemon(True)
+        ttt.start()
+
     def on_click_serial_setting(self):
-        subW = serialSetting.SerialSettingWindow(self)
+        subW = SerialSettingWindow(self)
         subW.exec()
 
     def on_start(self):
@@ -177,14 +239,16 @@ class MyMainWindow(QMainWindow):
             self.pauseAction.setDisabled(False)
             self.statusBar().showMessage("启动采样")
             self.data = []
+
+            self.web.set_channels(config.CFG.currentProtocol().xAxis)
             self.web.set_data(self.data)
         except serial.serialutil.SerialException as e:
             # subW = serialSetting.SerialSettingWindow(self)
             # returnValue = subW.exec()
-            # print("Fuuuuuck {}".format(returnValue))
             pass
 
     def on_pause(self):
+        self.cp.onClose()
         if not type(self.sss) is type(None):
             self.sss.close()
             self.serialAction.setDisabled(False)
@@ -194,7 +258,6 @@ class MyMainWindow(QMainWindow):
         # closeSerial()
         self.statusBar().showMessage("暂停采样")
 
-        self.cp.onClose()
 
     def on_save(self):
         fpath, flit = QFileDialog.getSaveFileName(parent=self, caption="保存数据，格式：{0}".format(
@@ -204,7 +267,15 @@ class MyMainWindow(QMainWindow):
             return
         if flit == "csv文件(*.csv)":
             with open(fpath, 'w+') as f:
-                f.write("time,CH1,CH2,CH3,CH4\n")
+
+                tit = "time"
+
+                for  i in config.CFG.currentProtocol().xAxis:
+                    tit += ",{0}".format(i["Name"])
+
+                print("通道：{0}".format(tit))
+
+                f.write(tit+"\n")
                 for a in self.data:
                     f.write("{0},".format(a["timestamp"]))
                     for l in a["data"]:
@@ -212,8 +283,12 @@ class MyMainWindow(QMainWindow):
                     f.write("\n")
         elif flit == "json文件(*.json)":
             with open(fpath, 'w+') as f:
-                f.write(json.dumps(self.data))
-        self.statusBar().showMessage("存储采样数据，格式: {}".format(format))
+                f.write(json.dumps({
+                    "device": config.CFG.currentProtocol().Device,
+                    "channels": config.CFG.currentProtocol().xAxis,
+                    "data": self.data,
+                }))
+        self.statusBar().showMessage("存储采样数据，格式: {}".format(flit))
 
         msgBox = QMessageBox()
         msgBox.setIcon(QMessageBox.Information)
@@ -240,7 +315,7 @@ class MyMainWindow(QMainWindow):
                 msgBox.setWindowTitle("找不到配置文件")
                 msgBox.setStandardButtons(QMessageBox.Ok)
                 returnValue = msgBox.exec()
-                subW = serialSetting.SerialSettingWindow()
+                subW = SerialSettingWindow()
                 subW.exec()
 
         try:
@@ -286,105 +361,6 @@ class MyMainWindow(QMainWindow):
             msgBox.setStandardButtons(QMessageBox.Ok)
             returnValue = msgBox.exec()
             raise e
-
-
-class WebChart(QWidget):
-    def __init__(self, parent=None):
-        QWidget.__init__(self)
-
-        parent.statusBar().showMessage('启动完成')
-
-        self.setMessage = parent.statusBar().showMessage
-
-        vbox = QVBoxLayout()
-
-        self.web = QWebEngineView()
-        # self.web.setContextMenuPolicy(Qt.NoContextMenu)
-        # htmlF = open("render.html", "r")
-        # self.initData()
-        # self.web.setHtml(htmlF.read())
-        self.web.load(QUrl("qrc:///html/render.html"))
-
-        vbox.setSpacing(0)
-        vbox.setContentsMargins(0, 0, 0, 0)
-        vbox.addWidget(self.web)
-
-        # button = QPushButton('PyQt5 button', self)
-        # button.clicked.connect(self.on_click)
-        # vbox.addWidget(button)
-
-        # button1 = QPushButton('button1', self)
-        # button1.setToolTip('This is an example button')
-        # button1.clicked.connect(self.on_click_serial_setting)
-        # vbox.addWidget(button1)
-
-        # self.data = [
-        #     {
-        #         "timestamp": 1,
-        #         "data": [1, 2, 3, 4]
-        #     },
-        #     {
-        #         "timestamp": 2,
-        #         "data": [5, 6, 7, 8]
-        #     },
-        #     {
-        #         "timestamp": 3,
-        #         "data": [9, 10, 11, 12]
-        #     },
-        #     {
-        #         "timestamp": 4,
-        #         "data": [13, 14, 15, 16]
-        #     },
-        # ]
-        self.setLayout(vbox)
-        self.web.loadFinished.connect(self.initChart)
-
-    def initChart(self):
-        self.runJs(r"""
-            var chart_b7e5870db3d84d4db9639909239acfd9 = echarts.init(
-                document.getElementById('b7e5870db3d84d4db9639909239acfd9'),
-                'white',
-                { renderer: 'canvas' });
-            chart_b7e5870db3d84d4db9639909239acfd9.setOption(option_b7e5870db3d84d4db9639909239acfd9);
-        """)
-
-    def resizeEvent(self, event):
-        # self.setMessage(
-        #     "resize {0} => {1}".format(event.oldSize(), event.size()))
-        self.runJs(r"""if (typeof resize !== "undefined")resize();""")
-        return super(WebChart, self).resizeEvent(event)
-
-    # @pyqtSlot()
-    # def on_click(self):
-
-    #     self.data.append({
-    #         "timestamp": "{0}".format(datetime.datetime.now().time()),
-    #         "data": [
-    #             int(random.random() * 100),
-    #             int(random.random() * 100),
-    #             int(random.random() * 100),
-    #             int(random.random() * 100)
-    #         ]
-    #     })
-    #     self.set_data(self.data)
-
-    def set_data(self, data):
-        self.web.page().runJavaScript(r"set_data({})".format(data))
-
-    def runJs(self, str):
-        self.web.page().runJavaScript(str)
-
-    # def initData(self):
-    #     bar = (
-    #         Line()
-    #         .add_xaxis(["衬衫", "毛衣", "领带", "裤子", "风衣", "高跟鞋", "袜子"])
-    #         .add_yaxis("商家A", [114, 55, 27, 101, 125, 27, 105])
-    #         .add_yaxis("商家B", [57, 134, 137, 129, 145, 60, 49])
-    #         .set_global_opts(title_opts=opts.TitleOpts(title="某商场销售情况"))
-    #     )
-
-    #     bar.render()
-
 
 if __name__ == '__main__':
     QCoreApplication.setAttribute(Qt.AA_EnableHighDpiScaling)

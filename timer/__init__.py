@@ -72,10 +72,8 @@ class Timer (threading.Thread):
 
         # if dur.total_seconds() > (self.nnn * self.delay):
 
-            # print("Fuuuuck 000 {0} {1}".format(
             #     dur.total_seconds(), self.nnn*self.delay))
             # if int(dur.total_seconds()*(1/self.acc)) != int(self.nnn*self.delay*(1/self.acc)):
-            # print("Fuuuuck 111 {0} {1}".format(
             #     dur.total_seconds(),
             #     self.nnn*self.delay,
             # ))
@@ -115,7 +113,7 @@ if __name__ == '__main__':
         # print("BBB: {0:.3f}".format(dur.total_seconds()))
 
         if int(dur.total_seconds()*10)*100 != nn:
-            print("Fuuuuck 222 {0} {1}".format(dur.total_seconds(), nn))
+            pass
             # tt.Stop()
             # exit()
         nn += delay

@@ -1,5 +1,3 @@
-from .device import VB_Mind_H2
-from .device import UTM
 import threading
 import serial
 import datetime
@@ -10,7 +8,6 @@ import struct
 from .main import checkSum
 from .main import readPackage
 from .main import BaseProtocol
-
 
 def HexDump(a):
     s = "     0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F\r\n"
@@ -84,6 +81,8 @@ class SerialThreadSend(threading.Thread):
 # 导入协议模块
 M = []
 
+from .device import VB_Mind_H2
+from .device import UTM
 
 M.append(UTM.USB_Temp_Monitor)
 M.append(VB_Mind_H2.VB_Mind_H2)

@@ -3,6 +3,11 @@
 import yaml
 import io
 import protocol
+import os
+
+cwd = os.getcwd()
+
+# print("cmd: {0}".format(cwd))
 
 # cfg = configparser.ConfigParser()
 
@@ -12,12 +17,17 @@ default_config = {
         "deviceType": "UTM",
         "port": "COM1",
     },
+    "webchart": {
+        "animation": True,
+        "symbol": True,
+    }
 }
 
 
 class CFG:
     data = None
-    cfgPath = "config.yml"
+    cfgPath = os.path.join(cwd, "config.yml")
+
     encoding = "utf8"
 
     @staticmethod

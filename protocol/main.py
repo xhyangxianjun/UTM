@@ -47,7 +47,6 @@ def readPackage(r):
         return "Miss Length", None
     packBody = r.read(packLen-header_pad)
     if len(packBody) < packLen-header_pad:
-        print("fuuuuuuuck")
         print("packBody {0} packLen {1}".format(len(packBody), packLen))
         print("packBody: {0}".format(packBody))
         return "EOF", None

@@ -144,3 +144,7 @@ cython_debug/
 
 # release file
 *.exe
+
+# config file
+*.ini
+*.yml

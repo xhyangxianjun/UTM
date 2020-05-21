@@ -91,7 +91,6 @@ class SerialSettingWindow(QDialog):
         # def fn2(tag):
         #     print("self.combobox_1.currentIndexChanged {0}".format(tag))
         # self.combobox_1.currentIndexChanged.connect(fn2)
-        # self.combobox_1.setEditText("Fuuuuuck")
         hbox.addWidget(self.combobox_1)
 
         refreshPortBtn = QPushButton()

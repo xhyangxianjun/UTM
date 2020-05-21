@@ -3,6 +3,7 @@ import struct
 import timer
 
 from protocol import BaseProtocol
+from protocol import HexDump
 
 
 class USB_Temp_Monitor(BaseProtocol):
@@ -10,16 +11,16 @@ class USB_Temp_Monitor(BaseProtocol):
     Name = "USB温度监控仪"
     Description = ""
     xAxis = [{
-        "Name": "CH1",
+        "Name": "通道1",
         "Scale": 1,
     }, {
-        "Name": "CH2",
+        "Name": "通道2",
         "Scale": 1,
     }, {
-        "Name": "CH3",
+        "Name": "通道3",
         "Scale": 1,
     }, {
-        "Name": "CH4",
+        "Name": "通道4",
         "Scale": 1,
     }]
 
@@ -29,7 +30,7 @@ class USB_Temp_Monitor(BaseProtocol):
 
     def parsePkg(self, body):
 
-        # print("Fuuuuck {0}", body)
+        # print(HexDump(body))
 
         (cmd, seq) = struct.unpack(r">BH", body[:3])
 
@@ -40,7 +41,10 @@ class USB_Temp_Monitor(BaseProtocol):
             (h1f, h1, h2f, h2, h3f, h3, h4f, h4) = struct.unpack(
                 r">BHBHBHBH", body[3:])
 
-            # print("Fuuuuck")
+            # if (h1f != 0) or (h2f != 0) or (h3f != 0) or (h4f != 0):
+            #     print(HexDump(body))
+            # if (h1f != 0) :
+            #     print(HexDump(body))
 
             return [
                 h1/100,
@@ -53,6 +57,7 @@ class USB_Temp_Monitor(BaseProtocol):
         self.tt.Run()
 
     def onClose(self):
+        self.sendPackage(b"\x00")
         self.tt.Stop()
         pass
 
