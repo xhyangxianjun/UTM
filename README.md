@@ -1,6 +1,6 @@
 # UTM
 
-![https://github.com/ma6254/UTM/raw/master/doc/screenshot_1.png](screenshot_1.png)
+![screenshot_1](https://github.com/ma6254/UTM/raw/master/screenshot_1.png)
 
 原为usb测温仪（usb temperature monitor），后扩展为多种设备上位机，通讯协议公开，易扩展
 
