@@ -1,5 +1,7 @@
 # UTM
 
+![https://github.com/ma6254/UTM/blob/master/doc/screenshot_1.png)](screenshot_1.png)
+
 原为usb测温仪（usb temperature monitor），后扩展为多种设备上位机，通讯协议公开，易扩展
 
 包括以下机型：
@@ -59,30 +61,3 @@ CP ../config.yml dist/main/
 upx dist/main/Qt5WebEngineCore.dll
 
 ```
-
-## 通讯协议
-
-### std_1
-
-文件：`protocol/base.py`
-
-方法： `recvPkg_ProtocolType_Std_1`
-
-
-| 名称   | 字段名   | 字节长度Byte | 描述             |
-| ------ | -------- | ------------ | ---------------- |
-| 帧头字 | Header   | 2            | 固定，0xF5，0xFA |
-| 长度字 | Length   | 1            | 当前帧的字节数   |
-| 数据   | DataBody | 不定         |                  |
-| 校验字 | Checksum | 1            | 和检验           |
-
-#### Example
-
-```
-F5 FA 06 00 00 F5
-```
-
-```
-F5 FA 07 01 10 00 07
-```
-
