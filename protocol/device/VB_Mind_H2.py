@@ -3,8 +3,9 @@ import struct
 import timer
 import time
 
-from protocol import BaseProtocol
-from protocol import HexDump
+from ..base import BaseProtocol, Btn_Func, Btn_Func_Dir
+
+from ..utils import HexDump
 
 
 class VB_Mind_H2(BaseProtocol):
@@ -44,32 +45,71 @@ class VB_Mind_H2(BaseProtocol):
         "ID": "K",
         "Scale": 0.1,
     }, {
-        "Name": "交流电压",
-        "ID": "AC_V",
-        "Scale": 0.5,
-    }, {
-        "Name": "查表交流电压",
+        "Name": "AC电压",
         "ID": "AC_V",
         "Scale": 0.5,
     }]
 
     def __init__(self, serial):
         super().__init__(serial)
-        self.tt = timer.Timer(delay=1, acc=0.1, fn=self.onClock)
-        
+        self.tt = timer.Timer(delay=1, acc=0.01, fn=self.onClock)
+        self.M_Btn = [
+            Btn_Func("停止出水", self.btn_test_0),
+            Btn_Func("测试 常温 25℃ 250mL", self.btn_test_1(25, 20)),
+            Btn_Func_Dir("测试 加热 250mL", [
+                Btn_Func("45℃", self.btn_test_1(45, 20)),
+                Btn_Func("55℃", self.btn_test_1(55, 20)),
+                Btn_Func("65℃", self.btn_test_1(65, 20)),
+                Btn_Func("75℃", self.btn_test_1(75, 20)),
+                Btn_Func("85℃", self.btn_test_1(85, 20)),
+                Btn_Func("90℃", self.btn_test_1(90, 20)),
+                Btn_Func("94℃", self.btn_test_1(94, 20)),
+                Btn_Func("95℃", self.btn_test_1(95, 20)),
+                Btn_Func("98℃", self.btn_test_1(98, 20)),
+                Btn_Func("99℃", self.btn_test_1(99, 20)),
+                Btn_Func("100℃", self.btn_test_1(100, 20)),
+            ]),
+            Btn_Func_Dir("定时器发送", [
+                Btn_Func("启动", self.tt.Run),
+                Btn_Func("停止", self.tt.Stop),
+                Btn_Func("参数 1秒 01-00-0A",
+                         self.set_timer_interval_cmd(1, b"\x01\x00\x0A")),
+            ]),
+            Btn_Func("读取预存数据", self.read_Pre_Data),
+        ]
+
+    def btn_test_0(self):
+        self.sendPackage(b"\xD0\x00")
+
+    def set_timer_interval_cmd(self, interval, cmd):
+        self.tt.delay = interval
+
+        def aaa():
+            self.sendPackage(cmd)
+        self.tt.fn = aaa
+
+    def btn_test_1(self, Water_Temp_Set, Set_Water_mil=0):
+
+        def aaa():
+            self.sendPackage(
+                b"\xD1"+struct.pack(
+                    r">BB",
+                    Water_Temp_Set,
+                    Set_Water_mil,
+                ))
+        return aaa
 
     def parsePkg(self, body):
-        # print(HexDump(body))
         p = 0
 
-        M = [0, 0, 0, 0]
+        M = []
 
-        (cmd, cnt) = struct.unpack(r">BH", body[p:p+3])
-        p += 3
+        (cmd,) = struct.unpack(r">B", body[p:p+1])
         # M[0] = cnt
 
-        if cmd == 0x01:
+        if cmd == 0x03:
 
+            # print(HexDump(body))
             (
                 入水口温度, 出水口温度,
                 水泵PWM,
@@ -79,8 +119,7 @@ class VB_Mind_H2(BaseProtocol):
                 预热微调强度,
                 斜率,
                 AC电压,
-                查表AC电压,
-            ) = struct.unpack(r">BBHBBBHBHH", body[p:p+14])
+            ) = struct.unpack(r">BBHBBBHbB", body[p+3:p+14])
             p += 11
 
             # 01 cmd
@@ -104,41 +143,45 @@ class VB_Mind_H2(BaseProtocol):
                 预热微调强度,
                 斜率,
                 AC电压,
-                查表AC电压,
             ]
             return M
 
-        elif cmd == 0x02:
+        elif cmd == 0x04:
 
             (
                 预热微调时间,
                 水泵PWM,
-            ) = struct.unpack(r">HH", body[p:p+4])
-            
+                page_cnt,
+                可控硅导通计数,
+            ) = struct.unpack(r">HHBB", body[p+3:p+9])
+
+            (
+                AC电压,
+            ) = struct.unpack(r">B", body[p+13:p+14])
 
             M = [
                 0,
                 0,
                 水泵PWM,
                 0,
+                可控硅导通计数,
                 0,
                 0,
                 0,
-                0,
-                0,
-                0,
+                AC电压,
             ]
             return M
 
-        return M
+        return []
 
     def onOpen(self, opts=None):
-        # self.sendPackage(b"\x00")
-        # time.sleep(0.1)
-        # self.sendPackage(b"\x01\x00\x01")
+        self.sendPackage(b"\x00")
+        time.sleep(0.5)
+        # self.sendPackage(b"\x01\xFF\xFF")
         # self.sendPackage(b"\x00\x00\00")
         # self.tt.Run()
-        self.sendPackage(b"\x02\x10\x00")
+        # self.sendPackage(b"\x02\x10\x00")
+        pass
 
     def onClose(self):
         self.sendPackage(b"\x00")
@@ -147,4 +190,7 @@ class VB_Mind_H2(BaseProtocol):
     def onClock(self):
         # self.sendPackage(b"\x00")
         # time.sleep(1)
-        self.sendPackage(b"\x01\x00\x01")
+        self.sendPackage(b"\x01\x00\x0A")
+
+    def read_Pre_Data(self):
+        self.sendPackage(b"\x02\x10\x00")

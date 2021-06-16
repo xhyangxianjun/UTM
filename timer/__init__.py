@@ -27,17 +27,15 @@ class Timer (threading.Thread):
     def run(self):
         old_Die = self.die
         while(1):
-            time.sleep(self.delay*self.acc*0.1)
             if (old_Die) and (not self.die):
-                if not self.onRun is None:
+                if self.onRun is not None:
                     self.onRun()
 
             if not self.die:
                 n = datetime.datetime.now()
-                dur = n-self.s_Time
 
                 if n > self.next_Time:
-                    if not self.fn is None:
+                    if self.fn is not None:
                         self.fn()
                     self.next_Time = self.next_Time + \
                         datetime.timedelta(seconds=self.delay) +\
@@ -45,49 +43,31 @@ class Timer (threading.Thread):
                     # time.sleep(self.delay*0.9*self.acc)
 
             if (not old_Die) and (self.die):
-                if not self.onStop is None:
+                if self.onStop is not None:
                     self.onStop()
 
             old_Die = self.die
+            time.sleep(self.delay*self.acc*0.1)
 
     def Run(self):
         self.die = False
         self.s_Time = datetime.datetime.now()
 
-        self.next_Time = self.s_Time + datetime.timedelta(seconds=self.delay)
+        # self.next_Time = self.s_Time + datetime.timedelta(seconds=self.delay)
+        self.next_Time = self.s_Time
 
     def Stop(self):
         self.die = True
 
     def runn(self):
         n = datetime.datetime.now()
-        dur = n-self.s_Time
 
         if n > self.next_Time:
-            if not self.fn is None:
+            if self.fn is not None:
                 self.fn()
             self.next_Time = self.next_Time + \
                 datetime.timedelta(seconds=self.delay) +\
                 datetime.timedelta(milliseconds=self.delay*self.acc)
-
-        # if dur.total_seconds() > (self.nnn * self.delay):
-
-            #     dur.total_seconds(), self.nnn*self.delay))
-            # if int(dur.total_seconds()*(1/self.acc)) != int(self.nnn*self.delay*(1/self.acc)):
-            #     dur.total_seconds(),
-            #     self.nnn*self.delay,
-            # ))
-            # self.Stop()
-            # exit()
-
-            # print("AAA: {0} {1}".format(dur.total_seconds(), self.nnn))
-            # self.a_Time = n
-            # self.nnn += 1
-            # if self.nnn > 10:
-            #     self.nnn = 0
-            #     self.s_Time = datetime.datetime.now()
-
-            # time.sleep(self.delay*0)
 
 
 def round(a):
@@ -100,27 +80,21 @@ def round(a):
 if __name__ == '__main__':
 
     tt = None
-
+    cnt = 0
     s_Time = datetime.datetime.now()
-    nn = 500
-    delay = 500
 
     def fffn():
-        global nn
-        n = datetime.datetime.now()
-        dur = n-s_Time
-        # dur = datetime.timedelta(seconds=int(dur.total_seconds()*1000)/1000)
-        # print("BBB: {0:.3f}".format(dur.total_seconds()))
+        global cnt
+        dur = datetime.datetime.now() - s_Time
 
-        if int(dur.total_seconds()*10)*100 != nn:
-            pass
-            # tt.Stop()
-            # exit()
-        nn += delay
+        dur = datetime.timedelta(
+            milliseconds=round(dur.total_seconds()*100)*10)
 
-        time.sleep(0.45)
+        print("{0} {1}".format(cnt, dur))
 
-    tt = Timer(delay=delay/1000, acc=0.01, fn=fffn)
+        cnt += 1
+
+    tt = Timer(delay=1, acc=0.1, fn=fffn)
     tt.Run()
     while(1):
         pass

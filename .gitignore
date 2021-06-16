@@ -36,6 +36,7 @@ MANIFEST
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
 *.spec
+/release/
 
 # Installer logs
 pip-log.txt
@@ -148,3 +149,4 @@ cython_debug/
 # config file
 *.ini
 *.yml
+config.yml

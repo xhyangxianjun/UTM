@@ -1,4 +1,22 @@
+chart:
+  chartRefreshInterval: 0.25
+  enAnimation: false
+  isLinkEmpty: false
 serial:
-  baud: 9600
-  deviceType: UTM
-  port: COM23
+- baud: '9600'
+  chann:
+  - 0
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+  - 6
+  - 7
+  - 8
+  deviceType: VB_Mind_H2
+  name: 设备1
+  port: COM18
+view:
+  showLatestView: 200
+  showLiveData: true

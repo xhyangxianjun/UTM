@@ -1,24 +1,23 @@
-from PyQt5.QtCore import (
-    Qt,
-    QUrl,
-)
-from PyQt5.QtWidgets import (
-    QWidget,
-    QVBoxLayout,
-)
-from PyQt5.QtWebEngineWidgets import (
-    QWebEngineView,
-)
+from PyQt5.QtCore import Qt, QUrl
+from PyQt5.QtWidgets import QWidget, QVBoxLayout
+from PyQt5.QtWebEngineWidgets import QWebEngineView
 
 import asserts
 
+
 class WebChart(QWidget):
+    ViewMode_All = 0
+    ViewMode_Last = 1
+
     def __init__(self, parent=None):
         QWidget.__init__(self)
 
-        parent.statusBar().showMessage('启动完成')
+        self.viewmode = WebChart.ViewMode_All
+        self.viewModeLast = 0
 
-        self.setMessage = parent.statusBar().showMessage
+        # parent.statusBar().showMessage('启动完成')
+
+        # self.setMessage = parent.statusBar().showMessage
 
         vbox = QVBoxLayout()
 
@@ -29,8 +28,8 @@ class WebChart(QWidget):
         # self.web.setHtml(htmlF.read())
         self.web.load(QUrl("qrc:///html/render.html"))
 
-        vbox.setSpacing(0)
-        vbox.setContentsMargins(0, 0, 0, 0)
+        # vbox.setSpacing(0)
+        # vbox.setContentsMargins(0, 0, 0, 0)
         vbox.addWidget(self.web)
 
         # button = QPushButton('PyQt5 button', self)
@@ -94,9 +93,19 @@ class WebChart(QWidget):
     #     self.set_data(self.data)
 
     def set_data(self, data):
+        self.web.page().runJavaScript(
+            r"view_mode={0};view_latest={1};".format(
+                self.viewmode,
+                self.viewModeLast,
+            ))
         self.web.page().runJavaScript(r"set_data({})".format(data))
 
     def push_data(self, data):
+        self.web.page().runJavaScript(
+            r"view_mode={0};view_latest={1};".format(
+                self.viewmode,
+                self.viewModeLast,
+            ))
         self.web.page().runJavaScript(r"push_data({})".format(data))
 
     def runJs(self, str):
@@ -104,6 +113,11 @@ class WebChart(QWidget):
 
     def set_channels(self, chan):
         self.web.page().runJavaScript(r"set_channel({})".format(chan))
+
+    def reload(self):
+        pass
+        # self.web.reload()
+        self.initChart()
 
     # def initData(self):
     #     bar = (

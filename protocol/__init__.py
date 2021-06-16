@@ -1,3 +1,12 @@
+from .device import TestMath
+from .device import VB_Mind_H2
+from .device import UTM
+from .device import T8775
+from .device import MotorPluse
+from .device import testa
+from .device import TDS_AB
+from .device import Heat980
+from .device import CowRobot
 import threading
 import serial
 import datetime
@@ -5,34 +14,24 @@ import time
 import struct
 
 # import protocol.main
-from .main import checkSum
-from .main import readPackage
-from .main import BaseProtocol
-
-def HexDump(a):
-    s = "     0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F\r\n"
-    for k, v in enumerate(a):
-        if k % 0x10 == 0x0:
-            s += "{0:02X}: ".format(k)
-
-        s += "{0:02X} ".format(v)
-
-        if k % 0x10 == 0xF:
-            s += "\r\n"
-    return s
+from .utils import checkSum
+from .utils import HexDump
+# from .main import readPackage
+from .base import BaseProtocol, recvFM
 
 
 class SerialThread (threading.Thread):
-    def __init__(self, r, fn=None):
+    def __init__(self, r, fn=None, ProtType=BaseProtocol.ProtocolType_Std_1):
         threading.Thread.__init__(self)
         self.r = r
         self.fn = fn
+        self.ProtType = ProtType
 
     def run(self):
         while(1):
             if (not self.r.is_open) and (self.in_waiting > 4):
                 time.delay(0.1)
-            msg, body = readPackage(self.r)
+            msg, body = recvFM[self.ProtType](self.r)
             if msg != None:
                 if msg == "EOF":
                     break
@@ -81,11 +80,22 @@ class SerialThreadSend(threading.Thread):
 # 导入协议模块
 M = []
 
-from .device import VB_Mind_H2
-from .device import UTM
-
 M.append(UTM.USB_Temp_Monitor)
 M.append(VB_Mind_H2.VB_Mind_H2)
+M.append(T8775.T8775)
+M.append(MotorPluse.MotorPluse)
+M.append(testa.testA)
+M.append(TestMath.TestMath)
+M.append(TDS_AB.TDS_AB)
+M.append(Heat980.Heat980)
+M.append(CowRobot.CowRobot)
+
+
+def find(name):
+    for k, v in enumerate(M):
+        if name == v.Device:
+            return M[k]
+
 
 print("load Protocol {}".format(len(M)))
 for k, v in enumerate(M):

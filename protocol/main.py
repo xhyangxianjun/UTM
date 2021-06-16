@@ -4,6 +4,7 @@ import struct
 import pkgutil
 import sys
 
+from .utils import checkSum
 
 header = b"\xF5\xFA"
 header_pad = 3
@@ -15,21 +16,6 @@ Length u8 下面的字节数
 。。。。
 CheckSum u8 校验字
 """
-
-
-def hexString(a):
-    s = ""
-    for i in a:
-        s += "{0:02X} ".format(i)
-    return s
-
-
-def checkSum(data):
-    a = 0
-    for i in data:
-        a += i
-    return a % 0x100
-
 
 def readPackage(r):
     header_count = 0
@@ -65,24 +51,6 @@ def readPackage(r):
         return "CheckSum Fail", None
 
     return None, packBody[:-1]
-
-
-class BaseProtocol:
-    def __init__(self, serial):
-        self.s = serial
-
-    def sendPackage(self, body):
-        s = b"\xF5\xFA"
-        s += struct.pack(">B", len(body)+4)
-        s += body
-        s += struct.pack(">B", checkSum(s))
-
-        try:
-            if self.s.is_open:
-                self.s.write(s)
-                self.s.flush()
-        except serial.serialutil.SerialException as e:
-            raise e
 
 
 if __name__ == '__main__':

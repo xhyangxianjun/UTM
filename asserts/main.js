@@ -1,17 +1,7 @@
-var DDD = [];
+var view_mode = 0;
+var view_latest = 0;
 
-let historyRefuelling = [
-    [0, 5],
-    [1, 7]
-]
-
-let historyTheft = [
-    [0, 1],
-    [1, 2],
-    [2, 3],
-    [3, 4]
-]
-
+var markline_y = [];
 
 var option_b7e5870db3d84d4db9639909239acfd9 = {
     title: {
@@ -82,6 +72,7 @@ var option_b7e5870db3d84d4db9639909239acfd9 = {
     ],
     yAxis: [
         {
+            name: "数值",
             type: "value",
             boundaryGap: false,
         },
@@ -103,23 +94,28 @@ function resize() {
 function set_data(data) {
     clear_date()
 
-    for (let index = 0; index < data.length; index++) {
+    let index = 0;
+
+    if ((view_mode == 1) && (view_latest > 0) && (view_latest < data.length)) {
+        index = data.length - view_latest;
+    }
+
+
+    for (; index < data.length; index++) {
         option_b7e5870db3d84d4db9639909239acfd9.xAxis[0].data.push(data[index].timestamp);
 
-        for (let index2 = 0; index2 < data[index].data.length; index2++) {
+        if (data[index].data.length != option_b7e5870db3d84d4db9639909239acfd9.series.length) {
+            console.warn("数据与图表的通道数不一致", data[index].data.length, option_b7e5870db3d84d4db9639909239acfd9.series.length)
+        }
+
+        let l = data[index].data.length;
+        if (option_b7e5870db3d84d4db9639909239acfd9.series.length < l) l = option_b7e5870db3d84d4db9639909239acfd9.series.length;
+
+        for (let index2 = 0; index2 < l; index2++) {
             option_b7e5870db3d84d4db9639909239acfd9.series[index2].data.push(data[index].data[index2]);
         }
     }
-
     option_b7e5870db3d84d4db9639909239acfd9.legend[0].selected = chart_b7e5870db3d84d4db9639909239acfd9.getOption().legend[0].selected;
-
-    // if (data.length >= 50) {
-    //     option_b7e5870db3d84d4db9639909239acfd9.dataZoom[0].startValue = data[data.length - 50].timestamp
-    //     option_b7e5870db3d84d4db9639909239acfd9.dataZoom[0].endValue = data[data.length - 1].timestamp
-    //     option_b7e5870db3d84d4db9639909239acfd9.dataZoom[1].startValue = data[data.length - 50].timestamp
-    //     option_b7e5870db3d84d4db9639909239acfd9.dataZoom[1].endValue = data[data.length - 1].timestamp
-    // }
-
     chart_b7e5870db3d84d4db9639909239acfd9.setOption(option_b7e5870db3d84d4db9639909239acfd9)
 }
 
@@ -162,8 +158,17 @@ function set_channel(data) {
             name: data[index].Name,
             sampling: "max",
             // symbol: 'rect',
+            // connectNulls: true,
             smooth: false,
             data: [],
+            markLine: {
+                symbol:"none",
+                label:{
+                    position:"end"
+                },
+                data : [
+                ],
+            },
         });
         option_b7e5870db3d84d4db9639909239acfd9.legend[0].data.push(
             data[index].Name
@@ -173,79 +178,3 @@ function set_channel(data) {
         option_b7e5870db3d84d4db9639909239acfd9
     );
 }
-
-var date = [];
-
-var data = [];
-var data2 = [];
-
-for (var i = 1; i < 20000; i++) {
-    date.push(i);
-    //data.push(Math.round((Math.random() - 0.5) * 20 + data[i - 1]));
-    data.push(Math.sin(i * 0.001))
-    data2.push(Math.cos(i * 0.001))
-}
-
-option_a = {
-    tooltip: {
-        trigger: 'axis',
-        position: function (pt) {
-            return [pt[0], '10%'];
-        }
-    },
-    title: {
-        left: 'center',
-        text: '大数据量面积图',
-    },
-    legend: {
-        data: ['意向']
-    },
-    toolbox: {
-        feature: {
-            dataZoom: {
-                yAxisIndex: 'none'
-            },
-            restore: {},
-            saveAsImage: {}
-        }
-    },
-    xAxis: {
-        type: 'category',
-        boundaryGap: false,
-        "splitLine": {
-            "show": true,
-            // "type": 'dashed',
-            "lineStyle": {
-                "show": true,
-            },
-        },
-        data: date
-    },
-    yAxis: {
-        type: 'value',
-    },
-    dataZoom: [{
-        type: 'inside',
-        start: 0,
-        end: 100
-    }, {
-        type: "slider",
-        start: 0,
-        end: 100,
-    }],
-    series: [{
-        name: '模拟数据',
-        type: 'line',
-        smooth: false,
-        sampling: 'average',
-        // symbol: 'rect',
-        data: data
-    }, {
-        name: '模拟数据A',
-        type: 'line',
-        smooth: false,
-        sampling: 'average',
-        // symbol: 'rect',
-        data: data2
-    }]
-};
